@@ -1,0 +1,2 @@
+"""mzrds commands package."""
+
