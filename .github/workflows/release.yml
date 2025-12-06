@@ -1,0 +1,108 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # 例如 v0.1.0, v1.0.0
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g., v0.1.0)"
+        required: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux-amd64
+            artifact: mzrds-linux-amd64
+          - runner: ubuntu-24.04-arm64
+            platform: linux-arm64
+            artifact: mzrds-linux-arm64
+          - runner: macos-13
+            platform: macos-amd64
+            artifact: mzrds-macos-amd64
+          - runner: macos-14
+            platform: macos-arm64
+            artifact: mzrds-macos-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run unit tests
+        run: uv run pytest tests/ -v -m "not integration and not smoke"
+
+      - name: Build binary
+        run: |
+          uv run python build.py
+          mv dist/mzrds dist/${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          retention-days: 7
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF##*/}"
+          fi
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          for file in mzrds-*; do
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "$file" > "${file}.sha256"
+            else
+              shasum -a 256 "$file" > "${file}.sha256"
+            fi
+          done
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.value }}
+          name: Release ${{ steps.version.outputs.value }}
+          files: |
+            dist/mzrds-*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.value, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
