@@ -67,7 +67,18 @@ get_latest_version() {
         error "需要 curl 或 wget 命令"
     fi
 
-    echo "$response" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+    # 检查响应是否包含错误信息
+    if echo "$response" | grep -q "Not Found\|API rate limit exceeded"; then
+        error "API 响应错误: $response"
+    fi
+
+    # 使用更稳健的 JSON 解析方法
+    if command -v jq &>/dev/null; then
+        echo "$response" | jq -r '.tag_name'
+    else
+        # 后备方案：使用更精确的正则表达式
+        echo "$response" | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -1
+    fi
 }
 
 # 下载文件
