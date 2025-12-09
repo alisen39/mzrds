@@ -16,9 +16,9 @@ mzrds 是一个无需安装 redis-cli 即可连接 Redis 的命令行工具，�
 #### 一键安装（推荐）
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alisen/mzrds/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/alisen39/mzrds/master/install.sh | bash
 # 或
-wget -qO- https://raw.githubusercontent.com/alisen/mzrds/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/alisen39/mzrds/master/install.sh | bash
 ```
 
 安装脚本会自动：
@@ -29,14 +29,14 @@ wget -qO- https://raw.githubusercontent.com/alisen/mzrds/main/install.sh | bash
 
 可用环境变量：
 - `MZRDS_VERSION`：指定版本号（默认 latest）
-- `MZRDS_REPO`：自定义仓库（默认 `alisen/mzrds`）
+- `MZRDS_REPO`：自定义仓库（默认 `alisen39/mzrds`）
 - `MZRDS_INSTALL_DIR`：自定义安装目录（默认 `/usr/local/bin`）
 
 #### 手动安装
 
 ```bash
 # 以 v0.1.0 为例
-wget https://github.com/alisen/mzrds/releases/download/v0.1.0/mzrds-linux-amd64
+wget https://github.com/alisen39/mzrds/releases/download/v0.1.0/mzrds-linux-amd64
 chmod +x mzrds-linux-amd64
 sudo mv mzrds-linux-amd64 /usr/local/bin/mzrds
 ```

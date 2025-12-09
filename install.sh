@@ -4,7 +4,7 @@
 set -euo pipefail
 
 VERSION="${MZRDS_VERSION:-latest}"
-REPO="${MZRDS_REPO:-alisen/mzrds}"
+REPO="${MZRDS_REPO:-alisen39/mzrds}"
 INSTALL_DIR="${MZRDS_INSTALL_DIR:-/usr/local/bin}"
 
 # 颜色输出
