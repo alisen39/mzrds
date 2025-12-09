@@ -20,19 +20,30 @@ jobs:
           - runner: ubuntu-latest
             platform: linux-amd64
             artifact: mzrds-linux-amd64
+            python_arch: x64
           - runner: ubuntu-24.04-arm64
             platform: linux-arm64
             artifact: mzrds-linux-arm64
-          - runner: macos-13
+            python_arch: arm64
+          - runner: macos-15
             platform: macos-amd64
             artifact: mzrds-macos-amd64
-          - runner: macos-14
+            python_arch: x64
+          - runner: macos-15
             platform: macos-arm64
             artifact: mzrds-macos-arm64
+            python_arch: arm64
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Ensure Rosetta for x64 builds
+        if: matrix.platform == 'macos-amd64'
+        run: |
+          if ! /usr/bin/pgrep oahd >/dev/null 2>&1; then
+            softwareupdate --install-rosetta --agree-to-license
+          fi
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -41,6 +52,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          architecture: ${{ matrix.python_arch || 'x64' }}
 
       - name: Install dependencies
         run: uv sync
