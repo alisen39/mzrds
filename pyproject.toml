@@ -1,6 +1,6 @@
 [project]
 name = "mzrds"
-version = "0.1.0"
+version = "0.1.3"
 description = "A Redis CLI tool without redis-cli dependency"
 readme = "README.md"
 requires-python = ">=3.13"
