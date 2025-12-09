@@ -107,10 +107,14 @@ uv run pytest tests/ -v -m smoke -s
 
 ### 编译发布
 
+#### 本地编译
+
 ```bash
 uv run python build.py
 # dist/ 目录下生成对应平台的单文件可执行程序
 ```
+
+#### 自动发布（推荐）
 
 项目内置 GitHub Actions Workflow（`.github/workflows/release.yml`），当创建 `v*.*.*` 标签时会：
 1. 在 macOS (amd64/arm64) 与 Ubuntu (amd64/arm64) 上并行构建
@@ -118,5 +122,36 @@ uv run python build.py
 3. 上传各平台二进制与 SHA256 校验文件
 4. 自动创建 GitHub Release
 
-手动触发（workflow_dispatch）时，可通过输入指定版本号。release 产物可搭配 `install.sh` 实现一键安装与升级。
+**发布新版本的步骤：**
+
+```bash
+# 1. 确保代码已提交并推送到远程仓库
+git add .
+git commit -m "feat: 新功能描述"
+git push origin master
+
+# 2. 创建版本标签（遵循语义化版本，如 v0.1.0, v1.0.0）
+git tag v0.1.0
+
+# 3. 推送标签到远程仓库（这会触发 GitHub Actions 自动构建和发布）
+git push origin v0.1.0
+
+# 或者一次性推送所有标签
+git push origin --tags
+```
+
+**注意事项：**
+- 标签格式必须为 `v*.*.*`（如 `v0.1.0`、`v1.2.3`）
+- 推送标签后，GitHub Actions 会自动开始构建流程
+- 构建完成后会在 GitHub Releases 页面自动创建 Release
+- Release 产物可搭配 `install.sh` 实现一键安装与升级
+
+#### 手动触发发布
+
+也可以通过 GitHub Actions 的 `workflow_dispatch` 手动触发发布：
+1. 访问 GitHub 仓库的 Actions 页面
+2. 选择 "Build and Release" workflow
+3. 点击 "Run workflow"
+4. 输入版本号（如 `v0.1.0`）
+5. 点击 "Run workflow" 开始构建
 
