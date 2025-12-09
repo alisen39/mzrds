@@ -21,10 +21,6 @@ jobs:
             platform: linux-amd64
             artifact: mzrds-linux-amd64
             python_arch: x64
-          - runner: ubuntu-24.04-arm64
-            platform: linux-arm64
-            artifact: mzrds-linux-arm64
-            python_arch: arm64
           - runner: macos-15
             platform: macos-amd64
             artifact: mzrds-macos-amd64

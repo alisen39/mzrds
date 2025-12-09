@@ -37,7 +37,7 @@ detect_platform() {
         Linux*)
             case "$arch" in
                 x86_64) echo "linux-amd64" ;;
-                aarch64) echo "linux-arm64" ;;
+                # aarch64) echo "linux-arm64" ;;
                 *) error "不支持的 Linux 架构: $arch" ;;
             esac
             ;;

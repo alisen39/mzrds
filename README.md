@@ -43,7 +43,6 @@ sudo mv mzrds-linux-amd64 /usr/local/bin/mzrds
 
 Release 将提供以下构建产物：
 - `mzrds-linux-amd64`
-- `mzrds-linux-arm64`
 - `mzrds-macos-amd64`
 - `mzrds-macos-arm64`
 
