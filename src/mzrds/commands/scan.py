@@ -44,6 +44,19 @@ def scan_command(
     cursor: int = typer.Option(0, "--cursor", help="起始游标"),
     auto: bool = typer.Option(False, "--auto", help="自动遍历至末尾"),
 ) -> None:
+    """
+    遍历当前数据库的 key 空间 (SCAN)。
+
+    Examples:
+      # 列出所有 key (默认显示前 100 个)
+      mzrds scan
+
+      # 查找所有以 'user:' 开头的 key，并自动翻页直到结束
+      mzrds scan -p "user:*" --auto
+
+      # 每次迭代返回 10 个
+      mzrds scan -c 10
+    """
     client = _client(ctx)
     if auto:
         iterator = client.scan_iter(match=pattern, count=count)
@@ -55,12 +68,19 @@ def scan_command(
 
 def hscan_command(
     ctx: typer.Context,
-    key: str,
+    key: str = typer.Argument(..., help="Hash 键名"),
     pattern: str = typer.Option("*", "--pattern", "-p"),
     count: int = typer.Option(100, "--count", "-c"),
     cursor: int = typer.Option(0, "--cursor"),
     auto: bool = typer.Option(False, "--auto"),
 ) -> None:
+    """
+    遍历 Hash 类型的字段 (HSCAN)。
+
+    Examples:
+      mzrds hscan myhash
+      mzrds hscan myhash -p "field_*" --auto
+    """
     client = _client(ctx)
     if auto:
         iterator = client.hscan_iter(key, match=pattern, count=count)
@@ -72,12 +92,19 @@ def hscan_command(
 
 def sscan_command(
     ctx: typer.Context,
-    key: str,
+    key: str = typer.Argument(..., help="Set 键名"),
     pattern: str = typer.Option("*", "--pattern", "-p"),
     count: int = typer.Option(100, "--count", "-c"),
     cursor: int = typer.Option(0, "--cursor"),
     auto: bool = typer.Option(False, "--auto"),
 ) -> None:
+    """
+    遍历 Set 类型的成员 (SSCAN)。
+
+    Examples:
+      mzrds sscan myset
+      mzrds sscan myset -p "member_*" --auto
+    """
     client = _client(ctx)
     if auto:
         iterator = client.sscan_iter(key, match=pattern, count=count)
@@ -89,13 +116,20 @@ def sscan_command(
 
 def zscan_command(
     ctx: typer.Context,
-    key: str,
+    key: str = typer.Argument(..., help="ZSet 键名"),
     pattern: str = typer.Option("*", "--pattern", "-p"),
     count: int = typer.Option(100, "--count", "-c"),
     cursor: int = typer.Option(0, "--cursor"),
     auto: bool = typer.Option(False, "--auto"),
     with_scores: bool = typer.Option(True, "--scores/--no-scores", help="显示分数"),
 ) -> None:
+    """
+    遍历 Sorted Set 类型的成员 (ZSCAN)。
+
+    Examples:
+      mzrds zscan myzset
+      mzrds zscan myzset --no-scores
+    """
     client = _client(ctx)
     if auto:
         iterator = client.zscan_iter(
@@ -110,10 +144,10 @@ def zscan_command(
 
 
 def register_scan_commands(app: typer.Typer) -> None:
-    app.command("scan", help="遍历 key 空间")(scan_command)
-    app.command("hscan", help="遍历哈希字段")(hscan_command)
-    app.command("sscan", help="遍历 set 成员")(sscan_command)
-    app.command("zscan", help="遍历 zset 成员")(zscan_command)
+    app.command("scan")(scan_command)
+    app.command("hscan")(hscan_command)
+    app.command("sscan")(sscan_command)
+    app.command("zscan")(zscan_command)
 
 
 __all__ = ["register_scan_commands"]
