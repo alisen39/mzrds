@@ -88,7 +88,7 @@ download() {
     local status=0
 
     if command -v curl &>/dev/null; then
-        curl -fsSL "$url" -o "$output" || status=$?
+        curl -#fSL "$url" -o "$output" || status=$?
     elif command -v wget &>/dev/null; then
         wget -q --show-progress "$url" -O "$output" || status=$?
     else
@@ -110,14 +110,25 @@ need_sudo() {
 verify_checksum() {
     local binary="$1"
     local checksum_file="$2"
+    local expected_sum
+    local actual_sum
+
+    # Extract just the hash from the checksum file (first field)
+    expected_sum=$(awk '{print $1}' "$checksum_file")
 
     if command -v sha256sum &>/dev/null; then
-        sha256sum --check --status "$checksum_file"
+        actual_sum=$(sha256sum "$binary" | awk '{print $1}')
     elif command -v shasum &>/dev/null; then
-        (cd "$(dirname "$checksum_file")" && shasum -a 256 -c "$(basename "$checksum_file")" >/dev/null)
+        actual_sum=$(shasum -a 256 "$binary" | awk '{print $1}')
     else
         warn "未找到 sha256sum/shasum，跳过校验"
         return 0
+    fi
+
+    if [ "$expected_sum" != "$actual_sum" ]; then
+        echo "期望值: $expected_sum"
+        echo "实际值: $actual_sum"
+        return 1
     fi
 }
 
@@ -140,6 +151,21 @@ main() {
         fi
     fi
     info "准备安装版本: $VERSION"
+
+    # 选择安装目录
+    echo ""
+    echo "请选择安装位置 / Select installation directory:"
+    echo "  1) 当前目录 / Current directory ($(pwd)) [Default]"
+    echo "  2) 系统目录 / System directory (/usr/local/bin)"
+    read -r -p "请输入选项 / Enter choice [1-2]: " choice_dir
+    echo ""
+    choice_dir=${choice_dir:-1}
+
+    if [ "$choice_dir" = "2" ]; then
+        INSTALL_DIR="/usr/local/bin"
+    else
+        INSTALL_DIR="$(pwd)"
+    fi
     
     # 构建下载 URL
     BINARY_NAME="mzrds-$PLATFORM"
@@ -148,14 +174,7 @@ main() {
     BASE_URL="https://github.com/$REPO/releases/download/$VERSION"
     DOWNLOAD_URL="$BASE_URL/$BINARY_NAME"
     
-    # 检测是否需要使用镜像
-    if command -v curl &>/dev/null; then
-        if ! curl -m 3 -s https://github.com >/dev/null 2>&1; then
-            warn "GitHub 访问较慢，使用镜像加速..."
-            BASE_URL="https://ghproxy.com/https://github.com/$REPO/releases/download/$VERSION"
-            DOWNLOAD_URL="$BASE_URL/$BINARY_NAME"
-        fi
-    fi
+
     
     # 创建临时目录
     TMP_DIR=$(mktemp -d)
@@ -188,23 +207,82 @@ main() {
     SUDO=$(need_sudo)
     info "安装到 $INSTALL_DIR/mzrds..."
     
+    if [ ! -d "$INSTALL_DIR" ]; then
+        if [ -n "$SUDO" ]; then
+            $SUDO mkdir -p "$INSTALL_DIR"
+        else
+            mkdir -p "$INSTALL_DIR"
+        fi
+    fi
+
     if [ -n "$SUDO" ]; then
-        warn "需要管理员权限来安装到 $INSTALL_DIR"
+        if [ "$INSTALL_DIR" = "/usr/local/bin" ]; then
+             warn "需要管理员权限来安装到 $INSTALL_DIR"
+        fi
         $SUDO mv "$TMP_DIR/mzrds" "$INSTALL_DIR/mzrds"
     else
         mv "$TMP_DIR/mzrds" "$INSTALL_DIR/mzrds"
     fi
     
     # 验证安装
-    if command -v mzrds &> /dev/null; then
+    TARGET_BIN="$INSTALL_DIR/mzrds"
+    if [ -f "$TARGET_BIN" ]; then
         info "✅ mzrds 安装成功！"
         echo ""
-        mzrds --help | head -n 10
+        
+        # 尝试运行帮助命令
+        if "$TARGET_BIN" --help >/dev/null 2>&1; then
+             "$TARGET_BIN" --help | head -n 10
+        else
+             warn "无法运行二进制文件 (可能是架构不匹配: $PLATFORM)"
+        fi
         echo ""
-        info "运行 'mzrds --help' 查看完整帮助"
-        info "运行 'mzrds -h 127.0.0.1 exec ping' 测试连接"
+
+        # 添加到环境变量
+        echo "是否自动添加到环境变量 PATH？/ Add to PATH?"
+        read -r -p "请输入 [y/N]: " choice_path
+        choice_path=${choice_path:-N}
+
+        if [[ "$choice_path" =~ ^[Yy]$ ]]; then
+            SHELL_RC=""
+            case "$SHELL" in
+                */zsh) SHELL_RC="$HOME/.zshrc" ;;
+                */bash)
+                    if [ -f "$HOME/.bash_profile" ]; then
+                        SHELL_RC="$HOME/.bash_profile"
+                    else
+                        SHELL_RC="$HOME/.bashrc"
+                    fi
+                    ;;
+                *) ;;
+            esac
+
+            if [ -n "$SHELL_RC" ]; then
+                # 检查是否已经在 PATH 中
+                if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+                    if ! grep -q "export PATH=.*$INSTALL_DIR" "$SHELL_RC"; then
+                        echo "" >> "$SHELL_RC"
+                        echo "# mzrds" >> "$SHELL_RC"
+                        echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$SHELL_RC"
+                        info "已添加到 $SHELL_RC"
+                        info "请运行 'source $SHELL_RC' 生效"
+                    else
+                        warn "配置已存在于 $SHELL_RC"
+                    fi
+                else
+                    warn "目录已在 PATH 中"
+                fi
+            else
+                warn "未检测到支持的 Shell 配置文件 (bash/zsh)"
+                echo "请手动添加: export PATH=\"\$PATH:$INSTALL_DIR\""
+            fi
+        fi
+
+        echo ""
+        info "安装完成 / Installation complete"
+        info "可执行文件位置: $TARGET_BIN"
     else
-        error "安装失败，请检查 $INSTALL_DIR 是否在 PATH 中"
+        error "安装失败，文件未找到: $TARGET_BIN"
     fi
 }
 
