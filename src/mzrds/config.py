@@ -5,8 +5,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, Optional, Any
 
-import tomli
 import tomli_w
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 
 
 def _default_config_dir() -> Path:
@@ -57,7 +60,7 @@ class ConfigStore:
         if not self.file_path.exists():
             return {}
         with self.file_path.open("rb") as fh:
-            return tomli.load(fh)
+            return tomllib.load(fh)
 
     def _dump_raw(self, data: Dict[str, Any]) -> None:
         self._ensure_dir()

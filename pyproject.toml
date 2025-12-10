@@ -1,13 +1,12 @@
 [project]
 name = "mzrds"
-version = "0.1.8"
+version = "0.1.9"
 description = "A Redis CLI tool without redis-cli dependency"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "typer[all]>=0.12.0",
     "redis[hiredis]>=5.0.0",
-    "tomli>=2.0.0",
     "tomli-w>=1.0.0",
 ]
 
