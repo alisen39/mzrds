@@ -5,11 +5,11 @@ from typing import Any, Dict, List, Optional
 
 import typer
 
-from .client import get_client
-from .commands.connection import connection_app
-from .commands.scan import register_scan_commands
-from .config import ConfigStore, ConnectionOptions, merge_options
-from .executor import execute_raw, print_response
+from mzrds.client import get_client
+from mzrds.commands.connection import connection_app
+from mzrds.commands.scan import register_scan_commands
+from mzrds.config import ConfigStore, ConnectionOptions, merge_options
+from mzrds.executor import execute_raw, print_response
 
 
 app = typer.Typer(help="mzrds - 轻量 Redis CLI", add_completion=False)
